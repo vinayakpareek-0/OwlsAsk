@@ -9,7 +9,7 @@ final_adapter/
 *.safetensors
 checkpoint-*/
 .triton/
-
+unsloth_compiled_cache/
 # --- Python & Environment ---
 __pycache__/
 *.py[cod]
