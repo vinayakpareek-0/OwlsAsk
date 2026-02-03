@@ -1,0 +1,40 @@
+# --- AI/ML Model Weights ---
+# Exclude the results and adapter folders (very large files)
+results/
+outputs/
+final_adapter/
+*.pt
+*.pth
+*.bin
+*.safetensors
+checkpoint-*/
+.triton/
+
+# --- Python & Environment ---
+__pycache__/
+*.py[cod]
+*$py.class
+.env
+.venv
+env/
+venv/
+ENV/
+bin/
+lib/
+
+# --- IDEs & OS ---
+.vscode/
+.idea/
+.DS_Store
+*.swp
+*.log
+
+# --- Database & Sensitive Info ---
+# If you ever create a local config or credentials file
+config.json
+secrets.py
+.mongo_uri
+
+# --- Lightning AI Specific ---
+.lightning/
+.cloudspaces/
