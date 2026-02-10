@@ -6,7 +6,7 @@
 
 SupportBot is a high-performance customer support agent built on **Llama 3.1 8B**. Unlike basic RAG setups, this project implements a dual-stage training pipeline (SFT + DPO), a custom **Sandwich Memory** architecture for long-form dialogue, and a cloud-native audit pipeline via **MongoDB Atlas**.
 
-## 🧠 Advanced Training Methodology
+## Advanced Training Methodology
 
 This project moved beyond out-of-the-box models by implementing a rigorous two-stage alignment process to ensure domain-specific expertise and behavioral safety.
 
@@ -23,7 +23,7 @@ This project moved beyond out-of-the-box models by implementing a rigorous two-s
 - **Contrastive Learning:** Created a "Chosen vs. Rejected" dataset where the model was penalized for using generic templates and rewarded for using real-world context and specific user data (IDs/Names).
 - **Result:** Significant reduction in hallucination rates and improved adherence to system-level constraints.
 
-## 🚀 Key Features
+## Key Features
 
 - **Optimized Inference:** 2x faster inference speed and reduced VRAM footprint via Unsloth's Triton kernels.
 - **Tiered Context Management (Sandwich Memory):** A custom Python engine that preserves initial user anchors (names/orders), summarizes middle-turn discussions, and maintains recent turns for high coherence.
@@ -31,7 +31,7 @@ This project moved beyond out-of-the-box models by implementing a rigorous two-s
 - **Cloud Audit Pipeline:** Real-time session logging to **MongoDB Atlas** for enterprise-level tracking and performance monitoring.
 - **Serverless Deployment:** Orchestrated via **FastAPI** for low-latency, stateless inference on **Lightning AI** or **RunPod**.
 
-## 🏗️ Architecture
+## Architecture
 
 The system follows a modular "Request-Process-Clean" pipeline:
 
@@ -40,7 +40,7 @@ The system follows a modular "Request-Process-Clean" pipeline:
 3.  **Refinement:** Regex filters verify the output for leaked training placeholders.
 4.  **Persistence:** The final interaction is logged to the cloud and the local memory window is updated.
 
-## 🛠️ Tech Stack
+##  Tech Stack
 
 - **LLM:** Llama 3.1 8B (4-bit quantized)
 - **Training:** SFTTrainer, DPOTrainer (Hugging Face TRL)
@@ -50,7 +50,7 @@ The system follows a modular "Request-Process-Clean" pipeline:
 - **Infrastructure:** Lightning AI / RunPod
 - **Frontend:** Vanilla JS / HTML5 (CSS3 Flexbox)
 
-## 📈 Performance Metrics
+##  Performance Metrics
 
 - **Inference Latency:** ~35ms per token (on L4 GPU).
 - **Memory Efficiency:** Fits 8B model + 2048 context within <10GB VRAM.
