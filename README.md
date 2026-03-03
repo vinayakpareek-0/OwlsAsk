@@ -1,61 +1,166 @@
-# OwlsAsk: Production-Grade NLP Customer Service Agent
+# OwlsAsk — Enterprise QA Agent
 
-[![Llama 3.1](https://img.shields.io/badge/Model-Llama%203.1%208B-blue)](https://huggingface.co/meta-llama/Meta-Llama-3.1-8B)
-[![Unsloth](https://img.shields.io/badge/Optimization-Unsloth-green)](https://github.com/unslothai/unsloth)
+[![Model](https://img.shields.io/badge/Model-Llama%203.1%208B-blue)](https://huggingface.co/meta-llama/Meta-Llama-3.1-8B)
+[![Optimization](https://img.shields.io/badge/Optimization-Unsloth%20%2B%20QLoRA-green)](https://github.com/unslothai/unsloth)
+[![Training](https://img.shields.io/badge/Training-SFT%20%2B%20DPO-orange)](https://huggingface.co/docs/trl)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-SupportBot is a high-performance customer support agent built on **Llama 3.1 8B**. Unlike basic RAG setups, this project implements a dual-stage training pipeline (SFT + DPO), a custom **Sandwich Memory** architecture for long-form dialogue, and a cloud-native audit pipeline via **MongoDB Atlas**.
-
-## Advanced Training Methodology
-
-This project moved beyond out-of-the-box models by implementing a rigorous two-stage alignment process to ensure domain-specific expertise and behavioral safety.
-
-### 1. Supervised Fine-Tuning (SFT)
-
-- **Dataset:** Trained on high-quality customer service datasets (Bitext) consisting of complex support queries and multi-turn resolutions.
-- **Optimization:** Utilized **QLoRA (4-bit quantization)** via the **Unsloth** library to reduce memory usage by 60% while maintaining performance.
-- **Hardware:** Optimized for 16GB VRAM environments (T4/L4 GPUs), allowing for full 8B parameter tuning on consumer-grade cloud hardware.
-
-### 2. Direct Preference Optimization (DPO)
-
-- **The Problem:** Initial SFT models occasionally over-fitted to dataset templates, leaking placeholders like `{{Order Number}}`.
-- **The Solution:** Implemented a **DPO Trainer** to align model preferences.
-- **Contrastive Learning:** Created a "Chosen vs. Rejected" dataset where the model was penalized for using generic templates and rewarded for using real-world context and specific user data (IDs/Names).
-- **Result:** Significant reduction in hallucination rates and improved adherence to system-level constraints.
-
-## Key Features
-
-- **Optimized Inference:** 2x faster inference speed and reduced VRAM footprint via Unsloth's Triton kernels.
-- **Tiered Context Management (Sandwich Memory):** A custom Python engine that preserves initial user anchors (names/orders), summarizes middle-turn discussions, and maintains recent turns for high coherence.
-- **Template Hallucination Recovery:** A **Regex-based post-processing layer** acts as a final safety net, ensuring 100% data accuracy for sensitive user metadata.
-- **Cloud Audit Pipeline:** Real-time session logging to **MongoDB Atlas** for enterprise-level tracking and performance monitoring.
-- **Serverless Deployment:** Orchestrated via **FastAPI** for low-latency, stateless inference on **Lightning AI** or **RunPod**.
-
-## Architecture
-
-The system follows a modular "Request-Process-Clean" pipeline:
-
-1.  **Context Engineering:** Prepends the system prompt and historical summary to the user query.
-2.  **Inference:** Llama 3.1 8B generates a response based on the "Sandwich" prompt.
-3.  **Refinement:** Regex filters verify the output for leaked training placeholders.
-4.  **Persistence:** The final interaction is logged to the cloud and the local memory window is updated.
-
-##  Tech Stack
-
-- **LLM:** Llama 3.1 8B (4-bit quantized)
-- **Training:** SFTTrainer, DPOTrainer (Hugging Face TRL)
-- **Optimization:** Unsloth / QLoRA
-- **Backend:** FastAPI / Uvicorn
-- **Database:** MongoDB Atlas (NoSQL)
-- **Infrastructure:** Lightning AI / RunPod
-- **Frontend:** Vanilla JS / HTML5 (CSS3 Flexbox)
-
-##  Performance Metrics
-
-- **Inference Latency:** ~35ms per token (on L4 GPU).
-- **Memory Efficiency:** Fits 8B model + 2048 context within <10GB VRAM.
-- **Data Integrity:** 100% removal of template placeholders via DPO + Post-processing.
+A production-grade, domain-adapted customer service agent built on **Llama 3.1 8B**. OwlsAsk goes beyond standard RAG setups by implementing a rigorous two-stage alignment pipeline (SFT + DPO), a custom **Sandwich Memory** architecture for coherent long-form dialogue, and a cloud-native audit system via **MongoDB Atlas**.
 
 ---
 
-Developed by **Vinayak**
+## Architecture Overview
+
+The system follows a modular **Request → Process → Clean → Persist** pipeline:
+
+```
+User Query
+    │
+    ▼
+Context Engineering      ← Sandwich Memory injects system prompt + history
+    │
+    ▼
+Llama 3.1 8B Inference   ← QLoRA quantized, Unsloth-optimized
+    │
+    ▼
+Regex Refinement Layer   ← Filters template leakage and placeholder artifacts
+    │
+    ▼
+MongoDB Atlas Logging    ← Session audit + performance tracking
+    │
+    ▼
+FastAPI Response         ← Stateless, low-latency output to client
+```
+
+---
+
+## Training Methodology
+
+### Stage 1 — Supervised Fine-Tuning (SFT)
+
+Fine-tuned on the **Bitext customer service dataset**, comprising complex support queries and multi-turn resolution dialogues.
+
+- **Quantization:** QLoRA (4-bit) via Unsloth — reduced VRAM usage by 60% with no measurable performance degradation
+- **Hardware Target:** 16GB VRAM environments (T4 / L4 GPUs), enabling full 8B parameter tuning on consumer-grade cloud hardware
+- **Trainer:** Hugging Face `SFTTrainer` with gradient checkpointing and paged optimizers
+
+### Stage 2 — Direct Preference Optimization (DPO)
+
+SFT alone caused the model to occasionally overfit to dataset templates, leaking placeholders such as `{{Order Number}}` in live responses.
+
+DPO was applied to correct this through contrastive preference learning:
+
+| | Chosen Response | Rejected Response |
+|---|---|---|
+| Uses real user data (names, IDs) | ✅ | ❌ |
+| Contains template placeholders | ❌ | ✅ |
+| Follows system-level constraints | ✅ | ❌ |
+
+**Outcome:** Significant reduction in hallucination rates and near-complete elimination of template leakage in production responses.
+
+---
+
+## Key Features
+
+### Sandwich Memory
+A custom context management engine that structures conversation history into three layers:
+- **Anchor layer** — preserves initial user identifiers (name, order ID) throughout the session
+- **Summary layer** — compresses middle-turn dialogue to stay within context limits
+- **Recency layer** — maintains the last N turns verbatim for coherence
+
+This ensures the model retains critical user metadata across long sessions without exceeding token budgets.
+
+### Template Hallucination Recovery
+A regex-based post-processing layer acts as a final safety net after inference, catching any residual placeholder artifacts that bypass DPO alignment. Guarantees 100% data integrity for sensitive user metadata in production.
+
+### Cloud Audit Pipeline
+Every session is logged in real time to **MongoDB Atlas**, enabling enterprise-level interaction tracking, response quality monitoring, and dataset collection for future fine-tuning cycles.
+
+---
+
+## Performance
+
+| Metric | Value |
+|---|---|
+| Inference latency | ~35ms per token (L4 GPU) |
+| VRAM footprint | < 10GB (8B model + 2048 context) |
+| Template placeholder removal | 100% (DPO + post-processing) |
+| Inference speedup vs. baseline | 2× (Unsloth Triton kernels) |
+| VRAM reduction vs. full precision | 60% |
+
+---
+
+## Tech Stack
+
+| Layer | Technology |
+|---|---|
+| LLM | Llama 3.1 8B (4-bit quantized) |
+| Training | SFTTrainer + DPOTrainer (Hugging Face TRL) |
+| Optimization | Unsloth / QLoRA |
+| Backend | FastAPI / Uvicorn |
+| Database | MongoDB Atlas |
+| Infrastructure | Lightning AI / RunPod |
+| Frontend | Vanilla JS / HTML5 |
+
+---
+
+## Project Structure
+
+```
+OwlsAsk/
+├── QA_SFT_train.py           # Stage 1 — Supervised Fine-Tuning training script
+├── dpo_train.py              # Stage 2 — Direct Preference Optimization training script
+├── context_eng.py            # Sandwich Memory context engineering engine
+├── generate.py               # Core inference and response generation
+├── main_chat.py              # Main chat loop entrypoint
+├── server.py                 # FastAPI server for API deployment
+├── audit_logger.py           # MongoDB Atlas session logging pipeline
+├── logger_test_chat.py       # Test script for audit logger integration
+├── test_context.py           # Unit tests for context engineering
+├── output/                   # Model outputs and generated artifacts
+├── unsloth_compiled_cache/   # Unsloth Triton kernel compilation cache
+├── .lightning_studio/        # Lightning AI studio configuration
+├── .gitignore
+└── README.md
+```
+
+---
+
+## Getting Started
+
+```bash
+git clone https://github.com/vinayakpareek-0/OwlsAsk.git
+cd OwlsAsk
+pip install -r requirements.txt
+```
+
+Configure your environment variables:
+
+```bash
+MONGO_URI=your_mongodb_atlas_uri
+HF_TOKEN=your_huggingface_token
+```
+
+**Train — Stage 1 (SFT):**
+```bash
+python QA_SFT_train.py
+```
+
+**Train — Stage 2 (DPO):**
+```bash
+python dpo_train.py
+```
+
+**Run the chat interface:**
+```bash
+python main_chat.py
+```
+
+**Run the API server:**
+```bash
+python server.py
+```
+
+---
+
+## Developed by [Vinayak Pareek](https://github.com/vinayakpareek-0)
